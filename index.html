@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Космический Понг</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0c0c2c;
+            color: #eee;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #symbol-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            color: #303050;
+            font-size: 20px;
+            line-height: 1.5;
+            text-align: justify;
+            word-wrap: break-word;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        h1 {
+            font-weight: 300;
+            letter-spacing: 2px;
+            color: #D8BFD8;
+            position: absolute;
+            top: 10px;
+        }
+
+        canvas {
+            background-color: rgba(0, 0, 0, 0.85);
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(174, 238, 238, 0.5);
+        }
+
+        #endMenu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 40, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #D8BFD8;
+            z-index: 10;
+        }
+
+        #endMenu h2 {
+            font-size: 36px;
+            margin-bottom: 30px;
+        }
+
+        .menu-button {
+            margin: 10px;
+            padding: 12px 24px;
+            font-size: 18px;
+            background-color: #D8BFD8;
+            color: #101030;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .menu-button:hover {
+            background-color: #AEEEEE;
+            box-shadow: 0 0 10px #AEEEEE;
+        }
+
+        .control-slider {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%) rotate(-90deg);
+            width: 200px;
+            height: 40px;
+            opacity: 0.8;
+            z-index: 5;
+        }
+
+        #leftSlider {
+            left: 5px;
+        }
+
+        #rightSlider {
+            right: 5px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 200px;
+            height: 15px;
+            background: #D8BFD8;
+            border-radius: 10px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 25px;
+            height: 25px;
+            background: #AEEEEE;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 5px #AEEEEE;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="symbol-background"></div>
+
+    <h1>Космический Понг</h1>
+
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <input type="range" id="leftSlider" class="control-slider" min="0" max="100" value="50">
+    <input type="range" id="rightSlider" class="control-slider" min="0" max="100" value="50">
+
+    <div id="endMenu">
+        <h2 id="winnerText">Победитель!</h2>
+        <button class="menu-button" id="restartBtn">Начать заново</button>
+        <button class="menu-button" id="exitBtn">Покинуть игру</button>
+    </div>
+
+    <audio id="bg-music" loop></audio>
+
+    <script>
+        const bg = document.getElementById('symbol-background');
+        bg.innerText = ('+ × , '.repeat(5000));
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const paddle1 = { x: 10, y: canvas.height / 2 - 50, width: 15, height: 100, color: '#AEEEEE', speed: 8 };
+        const paddle2 = { x: canvas.width - 25, y: canvas.height / 2 - 50, width: 15, height: 100, color: '#D8BFD8', speed: 8 };
+
+        const ball = { x: canvas.width / 2, y: canvas.height / 2, radius: 10, color: '#FFFFFF', dx: 5, dy: 5 };
+
+        const keys = { arrowup: false, arrowdown: false, w: true, s: true };
+
+        document.addEventListener('keydown', e => { const k = e.key.toLowerCase(); if (k in keys) keys[k] = true; });
+        document.addEventListener('keyup', e => { const k = e.key.toLowerCase(); if (k in keys) keys[k] = false; });
+
+        const leftSlider = document.getElementById('leftSlider');
+        const rightSlider = document.getElementById('rightSlider');
+        const endMenu = document.getElementById('endMenu');
+        const winnerText = document.getElementById('winnerText');
+        const restartBtn = document.getElementById('restartBtn');
+        const exitBtn = document.getElementById('exitBtn');
+
+        let gameRunning = true;
+
+        const music = document.getElementById('bg-music');
+        const tracks = [
+            "music1.mp3",
+            "music2.mp3",
+            "music3.mp3",
+            "music4.mp3"
+        ];
+
+        function playRandomMusic() {
+            const track = tracks[Math.floor(Math.random() * tracks.length)];
+            music.src = track;
+            music.volume = 0.5;
+            music.play().catch(() => { console.log("Браузер блокирует автозапуск — коснитесь экрана один раз."); });
+        }
+
+        document.addEventListener('click', () => {
+            if (music.paused) playRandomMusic();
+        }, { once: true });
+
+        window.onload = playRandomMusic;
+
+        function updateFromSliders() {
+            paddle1.y = (canvas.height - paddle1.height) * (parseFloat(leftSlider.value) / 100);
+            paddle2.y = (canvas.height - paddle2.height) * (parseFloat(rightSlider.value) / 100);
+        }
+
+        leftSlider.addEventListener('input', updateFromSliders);
+        rightSlider.addEventListener('input', updateFromSliders);
+
+        function update() {
+            if (!gameRunning) return;
+
+            if (keys.w && paddle1.y > 0) paddle1.y -= paddle1.speed;
+            if (keys.s && paddle1.y + paddle1.height < canvas.height) paddle1.y += paddle1.speed;
+            if (keys.arrowup && paddle2.y > 0) paddle2.y -= paddle2.speed;
+            if (keys.arrowdown && paddle2.y + paddle2.height < canvas.height) paddle2.y += paddle2.speed;
+
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) ball.dy *= -1;
+
+            if (ball.x - ball.radius < paddle1.x + paddle1.width &&
+                ball.y > paddle1.y && ball.y < paddle1.y + paddle1.height) {
+                ball.dx *= -1.05; ball.dy *= 1.05;
+            }
+
+            if (ball.x + ball.radius > paddle2.x &&
+                ball.y > paddle2.y && ball.y < paddle2.y + paddle2.height) {
+                ball.dx *= -1.05; ball.dy *= 1.05;
+            }
+
+            if (ball.x + ball.radius > canvas.width) endGame("Победил игрок 1!");
+            if (ball.x - ball.radius < 0) endGame("Победил игрок 2!");
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = paddle1.color;
+            ctx.fillRect(paddle1.x, paddle1.y, paddle1.width, paddle1.height);
+            ctx.fillStyle = paddle2.color;
+            ctx.fillRect(paddle2.x, paddle2.y, paddle2.width, paddle2.height);
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = ball.color;
+            ctx.fill();
+            ctx.closePath();
+            ctx.beginPath();
+            ctx.setLineDash([10, 10]);
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.closePath();
+        }
+
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            const baseSpeed = 5;
+            ball.dx = (Math.random() > 0.5 ? 1 : -1) * baseSpeed;
+            ball.dy = (Math.random() - 0.5) * baseSpeed;
+        }
+
+        function endGame(winner) {
+            gameRunning = false;
+            winnerText.textContent = winner;
+            endMenu.style.display = 'flex';
+        }
+
+        restartBtn.addEventListener('click', () => {
+            endMenu.style.display = 'none';
+            resetBall();
+            gameRunning = true;
+        });
+
+        exitBtn.addEventListener('click', () => {
+            location.reload();
+        });
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        resetBall();
+        gameLoop();
+    </script>
+</body>
+
+</html>
