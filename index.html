@@ -212,7 +212,7 @@
     <div id="timer">Время: 60</div>
     <div id="startText">Тапни по центру, чтобы начать</div>
 
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <canvas id="gameCanvas" width="650" height="425"></canvas>
 
     <input type="range" id="leftSlider" class="control-slider" min="0" max="100" value="50">
     <input type="range" id="rightSlider" class="control-slider" min="0" max="100" value="50">
@@ -245,18 +245,6 @@
 
         document.addEventListener('keydown', e => { const k = e.key.toLowerCase(); if (k in keys) keys[k] = true; });
         document.addEventListener('keyup', e => { const k = e.key.toLowerCase(); if (k in keys) keys[k] = false; });
-
-
-        document.addEventListener('keydown', e => { const k = e.key.toLowerCase(); if (k in keys) keys[k] = true; });
-        document.addEventListener('keyup', e => { const k = e.key.toLowerCase(); if (k in keys) keys[k] = false; });
-
-        window.addEventListener('blur', () => {
-            keys.w = false;
-            keys.s = false;
-            keys.arrowup = false;
-            keys.arrowdown = false;
-        });
-
 
         const leftSlider = document.getElementById('leftSlider');
         const rightSlider = document.getElementById('rightSlider');
@@ -336,16 +324,11 @@
         function update() {
             if (!gameRunning) return;
 
-            if (keys.w && paddle1.y > 0) {
-                paddle1.y -= paddle1.speed;
-            } else if (keys.s && paddle1.y + paddle1.height < canvas.height) {
-                paddle1.y += paddle1.speed;
-            }
-            if (keys.arrowup && paddle2.y > 0) {
-                paddle2.y -= paddle2.speed;
-            } else if (keys.arrowdown && paddle2.y + paddle2.height < canvas.height) {
-                paddle2.y += paddle2.speed;
-            }
+            if (keys.w && paddle1.y > 0) paddle1.y -= paddle1.speed;
+            if (keys.s && paddle1.y + paddle1.height < canvas.height) paddle1.y += paddle1.speed;
+            if (keys.arrowup && paddle2.y > 0) paddle2.y -= paddle2.speed;
+            if (keys.arrowdown && paddle2.y + paddle2.height < canvas.height) paddle2.y += paddle2.speed;
+
             ball.x += ball.dx;
             ball.y += ball.dy;
 
