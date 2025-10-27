@@ -14,7 +14,6 @@
             font-family: Arial, sans-serif;
             display: flex;
             flex-direction: column;
-            /* Изменено для лучшего центрирования */
             justify-content: center;
             align-items: center;
             height: 100vh;
@@ -64,12 +63,15 @@
             background-color: rgba(0, 0, 0, 0.85);
             border-radius: 10px;
             box-shadow: 0 0 20px rgba(174, 238, 238, 0.5);
+
             max-width: 800px;
             width: 95vw;
             height: auto;
             aspect-ratio: 800 / 600;
             max-height: 95vh;
         }
+
+        /* ... (остальные стили без изменений) ... */
 
         #endMenu {
             position: fixed;
@@ -134,6 +136,8 @@
             z-index: 2;
         }
 
+
+        /* --- ОБНОВЛЕННЫЙ МЕДИА-ЗАПРОС --- */
         @media (max-width: 820px) {
             body {
                 justify-content: flex-start;
@@ -142,22 +146,41 @@
 
             h1 {
                 position: static;
-                font-size: 1.5rem;
-                margin-bottom: 50px;
+                font-size: 1.3rem;
+                /* Уменьшили */
+                margin-bottom: 45px;
+                /* Уменьшили отступ */
             }
 
             #scoreboard {
-                top: 60px;
-                font-size: 18px;
+                top: 50px;
+                /* Подвинули выше */
+                font-size: 16px;
+                /* Уменьшили */
             }
 
             #timer {
-                top: 40px;
-                font-size: 16px;
+                top: 30px;
+                /* Подвинули выше */
+                font-size: 14px;
+                /* Уменьшили */
             }
 
+            /* --- НОВЫЕ ПРАВИЛА ДЛЯ КАНВАСА НА МОБИЛЬНЫХ --- */
+            canvas {
+                width: 90vw;
+                /* Чуть уже, чем 95vw */
+                /* Вот главное изменение: 
+                  Ограничиваем высоту, чтобы осталось место для UI
+                */
+                max-height: 65vh;
+            }
+
+            /* ------------------------------------------ */
+
             #startText {
-                font-size: 20px;
+                font-size: 18px;
+                /* Тоже уменьшили */
                 width: 80%;
             }
 
@@ -222,6 +245,18 @@
 
         document.addEventListener('keydown', e => { const k = e.key.toLowerCase(); if (k in keys) keys[k] = true; });
         document.addEventListener('keyup', e => { const k = e.key.toLowerCase(); if (k in keys) keys[k] = false; });
+
+
+        document.addEventListener('keydown', e => { const k = e.key.toLowerCase(); if (k in keys) keys[k] = true; });
+        document.addEventListener('keyup', e => { const k = e.key.toLowerCase(); if (k in keys) keys[k] = false; });
+
+        window.addEventListener('blur', () => {
+            keys.w = false;
+            keys.s = false;
+            keys.arrowup = false;
+            keys.arrowdown = false;
+        });
+
 
         const leftSlider = document.getElementById('leftSlider');
         const rightSlider = document.getElementById('rightSlider');
@@ -301,11 +336,16 @@
         function update() {
             if (!gameRunning) return;
 
-            if (keys.w && paddle1.y > 0) paddle1.y -= paddle1.speed;
-            if (keys.s && paddle1.y + paddle1.height < canvas.height) paddle1.y += paddle1.speed;
-            if (keys.arrowup && paddle2.y > 0) paddle2.y -= paddle2.speed;
-            if (keys.arrowdown && paddle2.y + paddle2.height < canvas.height) paddle2.y += paddle2.speed;
-
+            if (keys.w && paddle1.y > 0) {
+                paddle1.y -= paddle1.speed;
+            } else if (keys.s && paddle1.y + paddle1.height < canvas.height) {
+                paddle1.y += paddle1.speed;
+            }
+            if (keys.arrowup && paddle2.y > 0) {
+                paddle2.y -= paddle2.speed;
+            } else if (keys.arrowdown && paddle2.y + paddle2.height < canvas.height) {
+                paddle2.y += paddle2.speed;
+            }
             ball.x += ball.dx;
             ball.y += ball.dy;
 
