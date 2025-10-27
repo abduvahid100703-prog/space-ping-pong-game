@@ -44,6 +44,20 @@
             top: 10px;
         }
 
+        #scoreboard {
+            position: absolute;
+            top: 100px;
+            font-size: 24px;
+            color: #AEEEEE;
+        }
+
+        #timer {
+            position: absolute;
+            top: 75px;
+            font-size: 20px;
+            color: #D8BFD8;
+        }
+
         canvas {
             background-color: rgba(0, 0, 0, 0.85);
             border-radius: 10px;
@@ -105,23 +119,11 @@
             right: 5px;
         }
 
-        input[type="range"] {
-            -webkit-appearance: none;
-            width: 200px;
-            height: 15px;
-            background: #D8BFD8;
-            border-radius: 10px;
-            outline: none;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 25px;
-            height: 25px;
-            background: #AEEEEE;
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 0 5px #AEEEEE;
+        #startText {
+            position: absolute;
+            font-size: 28px;
+            color: #AEEEEE;
+            text-align: center;
         }
     </style>
 </head>
@@ -129,8 +131,10 @@
 <body>
 
     <div id="symbol-background"></div>
-
     <h1>Космический Понг</h1>
+    <div id="scoreboard">Игрок 1: 0 | Игрок 2: 0</div>
+    <div id="timer">Время: 60</div>
+    <div id="startText">Тапни по центру, чтобы начать</div>
 
     <canvas id="gameCanvas" width="800" height="600"></canvas>
 
@@ -151,9 +155,12 @@
 
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const startText = document.getElementById('startText');
+        const scoreboard = document.getElementById('scoreboard');
+        const timerDisplay = document.getElementById('timer');
 
-        const paddle1 = { x: 10, y: canvas.height / 2 - 50, width: 15, height: 100, color: '#AEEEEE', speed: 8 };
-        const paddle2 = { x: canvas.width - 25, y: canvas.height / 2 - 50, width: 15, height: 100, color: '#D8BFD8', speed: 8 };
+        const paddle1 = { x: 10, y: canvas.height / 2 - 50, width: 15, height: 100, color: '#AEEEEE', speed: 8, score: 0 };
+        const paddle2 = { x: canvas.width - 25, y: canvas.height / 2 - 50, width: 15, height: 100, color: '#D8BFD8', speed: 8, score: 0 };
 
         const ball = { x: canvas.width / 2, y: canvas.height / 2, radius: 10, color: '#FFFFFF', dx: 5, dy: 5 };
 
@@ -169,8 +176,12 @@
         const restartBtn = document.getElementById('restartBtn');
         const exitBtn = document.getElementById('exitBtn');
 
-        let gameRunning = true;
+        let gameRunning = false;
+        let gameStarted = false;
+        let timeLeft = 60;
+        let timerInterval;
 
+        // 🎵 Музыка
         const music = document.getElementById('bg-music');
         const tracks = [
             "music1.mp3",
@@ -183,7 +194,7 @@
             const track = tracks[Math.floor(Math.random() * tracks.length)];
             music.src = track;
             music.volume = 0.5;
-            music.play().catch(() => { console.log("Браузер блокирует автозапуск — коснитесь экрана один раз."); });
+            music.play().catch(() => { console.log("Требуется взаимодействие для запуска музыки."); });
         }
 
         document.addEventListener('click', () => {
@@ -193,12 +204,29 @@
         window.onload = playRandomMusic;
 
         function updateFromSliders() {
-            paddle1.y = (canvas.height - paddle1.height) * (parseFloat(leftSlider.value) / 100);
-            paddle2.y = (canvas.height - paddle2.height) * (parseFloat(rightSlider.value) / 100);
+            paddle1.y = (canvas.height - paddle1.height) * (1 - parseFloat(leftSlider.value) / 100);
+            paddle2.y = (canvas.height - paddle2.height) * (1 - parseFloat(rightSlider.value) / 100);
         }
 
         leftSlider.addEventListener('input', updateFromSliders);
         rightSlider.addEventListener('input', updateFromSliders);
+
+        function startGame() {
+            startText.style.display = 'none';
+            setTimeout(() => {
+                gameRunning = true;
+                gameStarted = true;
+                startTimer();
+            }, 1500);
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = "Время: " + timeLeft;
+                if (timeLeft <= 0) endGame();
+            }, 1000);
+        }
 
         function update() {
             if (!gameRunning) return;
@@ -216,15 +244,22 @@
             if (ball.x - ball.radius < paddle1.x + paddle1.width &&
                 ball.y > paddle1.y && ball.y < paddle1.y + paddle1.height) {
                 ball.dx *= -1.05; ball.dy *= 1.05;
+                paddle1.score++;
+                updateScore();
             }
 
             if (ball.x + ball.radius > paddle2.x &&
                 ball.y > paddle2.y && ball.y < paddle2.y + paddle2.height) {
                 ball.dx *= -1.05; ball.dy *= 1.05;
+                paddle2.score++;
+                updateScore();
             }
 
-            if (ball.x + ball.radius > canvas.width) endGame("Победил игрок 1!");
-            if (ball.x - ball.radius < 0) endGame("Победил игрок 2!");
+            if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) resetBall();
+        }
+
+        function updateScore() {
+            scoreboard.textContent = `Игрок 1: ${paddle1.score} | Игрок 2: ${paddle2.score}`;
         }
 
         function draw() {
@@ -238,6 +273,7 @@
             ctx.fillStyle = ball.color;
             ctx.fill();
             ctx.closePath();
+
             ctx.beginPath();
             ctx.setLineDash([10, 10]);
             ctx.moveTo(canvas.width / 2, 0);
@@ -245,7 +281,6 @@
             ctx.strokeStyle = '#555';
             ctx.lineWidth = 3;
             ctx.stroke();
-            ctx.setLineDash([]);
             ctx.closePath();
         }
 
@@ -257,27 +292,29 @@
             ball.dy = (Math.random() - 0.5) * baseSpeed;
         }
 
-        function endGame(winner) {
+        function endGame() {
             gameRunning = false;
-            winnerText.textContent = winner;
+            clearInterval(timerInterval);
+
+            if (paddle1.score > paddle2.score) winnerText.textContent = "Победил игрок 1!";
+            else if (paddle2.score > paddle1.score) winnerText.textContent = "Победил игрок 2!";
+            else winnerText.textContent = "Ничья!";
+
             endMenu.style.display = 'flex';
         }
 
-        restartBtn.addEventListener('click', () => {
-            endMenu.style.display = 'none';
-            resetBall();
-            gameRunning = true;
-        });
-
-        exitBtn.addEventListener('click', () => {
-            location.reload();
-        });
+        restartBtn.addEventListener('click', () => location.reload());
+        exitBtn.addEventListener('click', () => location.reload());
 
         function gameLoop() {
             update();
             draw();
             requestAnimationFrame(gameLoop);
         }
+
+        canvas.addEventListener('click', (e) => {
+            if (!gameStarted) startGame();
+        });
 
         resetBall();
         gameLoop();
