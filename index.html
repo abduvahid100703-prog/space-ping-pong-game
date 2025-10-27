@@ -13,6 +13,8 @@
             color: #eee;
             font-family: Arial, sans-serif;
             display: flex;
+            flex-direction: column;
+            /* Изменено для лучшего центрирования */
             justify-content: center;
             align-items: center;
             height: 100vh;
@@ -62,6 +64,11 @@
             background-color: rgba(0, 0, 0, 0.85);
             border-radius: 10px;
             box-shadow: 0 0 20px rgba(174, 238, 238, 0.5);
+            max-width: 800px;
+            width: 95vw;
+            height: auto;
+            aspect-ratio: 800 / 600;
+            max-height: 95vh;
         }
 
         #endMenu {
@@ -124,6 +131,52 @@
             font-size: 28px;
             color: #AEEEEE;
             text-align: center;
+            z-index: 2;
+        }
+
+        @media (max-width: 820px) {
+            body {
+                justify-content: flex-start;
+                padding-top: 10px;
+            }
+
+            h1 {
+                position: static;
+                font-size: 1.5rem;
+                margin-bottom: 50px;
+            }
+
+            #scoreboard {
+                top: 60px;
+                font-size: 18px;
+            }
+
+            #timer {
+                top: 40px;
+                font-size: 16px;
+            }
+
+            #startText {
+                font-size: 20px;
+                width: 80%;
+            }
+
+            .control-slider {
+                transform: none;
+                top: auto;
+                bottom: 10px;
+                width: 45%;
+                height: 50px;
+                opacity: 0.7;
+            }
+
+            #leftSlider {
+                left: 2.5%;
+            }
+
+            #rightSlider {
+                right: 2.5%;
+            }
         }
     </style>
 </head>
@@ -164,6 +217,7 @@
 
         const ball = { x: canvas.width / 2, y: canvas.height / 2, radius: 10, color: '#FFFFFF', dx: 5, dy: 5 };
 
+
         const keys = { arrowup: false, arrowdown: false, w: true, s: true };
 
         document.addEventListener('keydown', e => { const k = e.key.toLowerCase(); if (k in keys) keys[k] = true; });
@@ -181,7 +235,6 @@
         let timeLeft = 60;
         let timerInterval;
 
-        // 🎵 Музыка
         const music = document.getElementById('bg-music');
         const tracks = [
             "music1.mp3",
@@ -197,9 +250,16 @@
             music.play().catch(() => { console.log("Требуется взаимодействие для запуска музыки."); });
         }
 
-        document.addEventListener('click', () => {
-            if (music.paused) playRandomMusic();
-        }, { once: true });
+        function handleFirstInteraction() {
+            if (music.paused) {
+                playRandomMusic();
+            }
+            document.removeEventListener('click', handleFirstInteraction);
+            document.removeEventListener('touchend', handleFirstInteraction);
+        }
+
+        document.addEventListener('click', handleFirstInteraction);
+        document.addEventListener('touchend', handleFirstInteraction);
 
         window.onload = playRandomMusic;
 
@@ -212,15 +272,25 @@
         rightSlider.addEventListener('input', updateFromSliders);
 
         function startGame() {
+            if (gameStarted) return;
+            gameStarted = true;
             startText.style.display = 'none';
+
+            paddle1.score = 0;
+            paddle2.score = 0;
+            timeLeft = 60;
+            updateScore();
+            timerDisplay.textContent = "Время: " + timeLeft;
+
+            resetBall();
             setTimeout(() => {
                 gameRunning = true;
-                gameStarted = true;
                 startTimer();
-            }, 1500);
+            }, 1000);
         }
 
         function startTimer() {
+            clearInterval(timerInterval);
             timerInterval = setInterval(() => {
                 timeLeft--;
                 timerDisplay.textContent = "Время: " + timeLeft;
@@ -241,21 +311,29 @@
 
             if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) ball.dy *= -1;
 
-            if (ball.x - ball.radius < paddle1.x + paddle1.width &&
+            if (ball.dx < 0 && ball.x - ball.radius < paddle1.x + paddle1.width &&
                 ball.y > paddle1.y && ball.y < paddle1.y + paddle1.height) {
-                ball.dx *= -1.05; ball.dy *= 1.05;
+                ball.dx *= -1.05;
+                ball.dy = (ball.dy + (Math.random() - 0.5) * 2) * 1.02;
                 paddle1.score++;
                 updateScore();
             }
 
-            if (ball.x + ball.radius > paddle2.x &&
+            if (ball.dx > 0 && ball.x + ball.radius > paddle2.x &&
                 ball.y > paddle2.y && ball.y < paddle2.y + paddle2.height) {
-                ball.dx *= -1.05; ball.dy *= 1.05;
+                ball.dx *= -1.05;
+                ball.dy = (ball.dy + (Math.random() - 0.5) * 2) * 1.02;
                 paddle2.score++;
                 updateScore();
             }
 
-            if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) resetBall();
+            if (ball.x + ball.radius < 0) {
+                updateScore();
+                resetBall();
+            } else if (ball.x - ball.radius > canvas.width) {
+                updateScore();
+                resetBall();
+            }
         }
 
         function updateScore() {
@@ -268,11 +346,14 @@
             ctx.fillRect(paddle1.x, paddle1.y, paddle1.width, paddle1.height);
             ctx.fillStyle = paddle2.color;
             ctx.fillRect(paddle2.x, paddle2.y, paddle2.width, paddle2.height);
-            ctx.beginPath();
-            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-            ctx.fillStyle = ball.color;
-            ctx.fill();
-            ctx.closePath();
+
+            if (gameRunning) {
+                ctx.beginPath();
+                ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+                ctx.fillStyle = ball.color;
+                ctx.fill();
+                ctx.closePath();
+            }
 
             ctx.beginPath();
             ctx.setLineDash([10, 10]);
@@ -285,15 +366,23 @@
         }
 
         function resetBall() {
+            gameRunning = false;
             ball.x = canvas.width / 2;
             ball.y = canvas.height / 2;
             const baseSpeed = 5;
             ball.dx = (Math.random() > 0.5 ? 1 : -1) * baseSpeed;
             ball.dy = (Math.random() - 0.5) * baseSpeed;
+
+            if (gameStarted && timeLeft > 0) {
+                setTimeout(() => {
+                    gameRunning = true;
+                }, 500);
+            }
         }
 
         function endGame() {
             gameRunning = false;
+            gameStarted = false;
             clearInterval(timerInterval);
 
             if (paddle1.score > paddle2.score) winnerText.textContent = "Победил игрок 1!";
@@ -303,8 +392,35 @@
             endMenu.style.display = 'flex';
         }
 
-        restartBtn.addEventListener('click', () => location.reload());
-        exitBtn.addEventListener('click', () => location.reload());
+        restartBtn.addEventListener('click', () => {
+            endMenu.style.display = 'none';
+            startText.style.display = 'block';
+            resetGame();
+        });
+
+        exitBtn.addEventListener('click', () => {
+            endMenu.style.display = 'none';
+            startText.style.display = 'block';
+            resetGame();
+        });
+
+        function resetGame() {
+            gameRunning = false;
+            gameStarted = false;
+            timeLeft = 60;
+            paddle1.score = 0;
+            paddle2.score = 0;
+            paddle1.y = canvas.height / 2 - 50;
+            paddle2.y = canvas.height / 2 - 50;
+            leftSlider.value = 50;
+            rightSlider.value = 50;
+            updateScore();
+            timerDisplay.textContent = "Время: " + timeLeft;
+            clearInterval(timerInterval);
+            resetBall();
+            draw();
+        }
+
 
         function gameLoop() {
             update();
@@ -316,7 +432,13 @@
             if (!gameStarted) startGame();
         });
 
-        resetBall();
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (!gameStarted) startGame();
+        });
+
+        resetGame();
         gameLoop();
     </script>
 </body>
