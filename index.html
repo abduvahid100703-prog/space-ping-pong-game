@@ -63,15 +63,13 @@
             background-color: rgba(0, 0, 0, 0.85);
             border-radius: 10px;
             box-shadow: 0 0 20px rgba(174, 238, 238, 0.5);
-
             max-width: 800px;
-            width: 95vw;
+            width: 90vw;
+
             height: auto;
             aspect-ratio: 800 / 600;
-            max-height: 95vh;
+            max-height: calc(100vh - 160px);
         }
-
-        /* ... (остальные стили без изменений) ... */
 
         #endMenu {
             position: fixed;
@@ -161,22 +159,15 @@
 
             #timer {
                 top: 30px;
-                /* Подвинули выше */
                 font-size: 14px;
                 /* Уменьшили */
             }
 
-            /* --- НОВЫЕ ПРАВИЛА ДЛЯ КАНВАСА НА МОБИЛЬНЫХ --- */
             canvas {
                 width: 90vw;
-                /* Чуть уже, чем 95vw */
-                /* Вот главное изменение: 
-                  Ограничиваем высоту, чтобы осталось место для UI
-                */
                 max-height: 65vh;
             }
 
-            /* ------------------------------------------ */
 
             #startText {
                 font-size: 18px;
@@ -212,7 +203,7 @@
     <div id="timer">Время: 60</div>
     <div id="startText">Тапни по центру, чтобы начать</div>
 
-    <canvas id="gameCanvas" width="650" height="425"></canvas>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
 
     <input type="range" id="leftSlider" class="control-slider" min="0" max="100" value="50">
     <input type="range" id="rightSlider" class="control-slider" min="0" max="100" value="50">
